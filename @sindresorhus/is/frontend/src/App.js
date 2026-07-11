@@ -73,6 +73,7 @@ function App() {
         <Route path="/ranking" element={<Ranking content={content.ranking} />} />
         <Route path="/profile" element={<Profile content={content.profile} />} />
     <Route path="/branches" element={<Branches />} />
+<Route path="/services" element={<Services />} />
       </Routes>
     </BrowserRouter>
   );
