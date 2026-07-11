@@ -1,2 +1,2 @@
 import React from 'react';
-export default function Benefit() { return <div>Бонусы</div>; }
+export default function Ranking() { return <div>Бонусы</div>; }
