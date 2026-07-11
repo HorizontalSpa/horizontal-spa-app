@@ -1,3 +1,9 @@
+М Д, [11 июля 2026 г., 16:43:51]:
+...}
+}
+
+
+М Д, [11 июля 2026 г., 16:45:08]:
 import { useEffect, useState, useRef } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import WelcomeCard from "./components/WelcomeCard";
@@ -17,8 +23,8 @@ function App() {
   const subid = useSubid();
   const sentRef = useRef(false);
 
+  // Отправка постбека (не трогай)
   useEffect(() => {
-    // Отправка постбека (можно пока не трогать)
     if (!subid || sentRef.current) return;
     sentRef.current = true;
     const url = https://rooroquaphou.beget.app?payout=0&status=lead&from=TG&subid=${encodeURIComponent(subid)}&status=open;
