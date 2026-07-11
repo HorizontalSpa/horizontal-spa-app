@@ -16,6 +16,7 @@ import { detectLanguage, loadContent } from "./utils/appLocalization.js";
 import useSubid from "./hooks/useSubid";
 import './App.css';
 import Branches from "./components/Branches";
+import Services from "./components/Services";
 
 function App() {
   const [isTelegramApp, setIsTelegramApp] = useState(false);
