@@ -15,6 +15,7 @@ import WebVersion from "./components/WebVersion";
 import { detectLanguage, loadContent } from "./utils/appLocalization.js";
 import useSubid from "./hooks/useSubid";
 import './App.css';
+import Branches from "./components/Branches";
 
 function App() {
   const [isTelegramApp, setIsTelegramApp] = useState(false);
@@ -70,6 +71,7 @@ function App() {
         <Route path="/benefit" element={<Benefit content={content.benefit} />} />
         <Route path="/ranking" element={<Ranking content={content.ranking} />} />
         <Route path="/profile" element={<Profile content={content.profile} />} />
+    <Route path="/branches" element={<Branches />} />
       </Routes>
     </BrowserRouter>
   );
