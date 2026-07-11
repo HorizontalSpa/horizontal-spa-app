@@ -1,7 +1,7 @@
 {
   "name": "telegramminiapp",
   "version": "1.0.0",
-  "description": "",
+  "description": "Telegram Mini App для сети массажных студий Horizontal",
   "main": "server-render.js",
   "scripts": {
     "start": "node server-render.js",
@@ -10,7 +10,7 @@
     "initdb": "node initdb.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "HorizontalSpa",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
