@@ -1092,4 +1092,24 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   padding: 5px 15px;
   border-radius: 5px;
   font-weight: 900;
+}/* Адаптация для телефонов */
+@media (max-width: 768px) {
+  .welcome-container {
+    padding: 16px !important;
+    min-height: 100vh !important;
+  }
+  
+  .welcome-header {
+    font-size: 24px !important;
+  }
+  
+  .info-item {
+    padding: 12px !important;
+  }
+  
+  .start-button {
+    width: 100% !important;
+    padding: 16px !important;
+    font-size: 18px !important;
+  }
 }
