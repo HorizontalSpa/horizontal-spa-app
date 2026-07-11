@@ -13,57 +13,44 @@ import './App.css';
 function App() {
   const [isTelegramApp, setIsTelegramApp] = useState(false);
   const [content, setContent] = useState(null);
-
+  const [loading, setLoading] = useState(true);
   const subid = useSubid();
   const sentRef = useRef(false);
 
   useEffect(() => {
-    // шлём постбек только если:
-    // 1) у нас есть subid
-    // 2) мы ещё не отправляли
+    // Отправка постбека (можно пока не трогать)
     if (!subid || sentRef.current) return;
-
     sentRef.current = true;
-
-    // !!! ЗДЕСЬ ТВОЯ ССЫЛКА KEITARO !!!
-    // пример:
-    // const url = `https://your-keitaro-domain.com/postback?key=SECRET&subid=${encodeURIComponent(subid)}&status=open`;
-    const url = `https://rooroquaphou.beget.app?payout=0&status=lead&from=TG&subid=${encodeURIComponent(
-      subid
-    )}&status=open`;
-
-    // отправим "в фоне", нам не важен ответ
-    fetch(url, {
-      method: "GET",
-      mode: "no-cors",
-    }).catch((e) => {
-      // ничего страшного, просто залогируем в консоль
-      console.warn("Keitaro postback failed", e);
-    });
-
-    // узнаем язык
-    const lang = detectLanguage();
-    const localization = loadContent(lang);
-    console.log("🌍 Detected language:", lang);
-    setContent(localization);
-
+    const url = https://rooroquaphou.beget.app?payout=0&status=lead&from=TG&subid=${encodeURIComponent(subid)}&status=open;
+    fetch(url, { method: "GET", mode: "no-cors" }).catch((e) => console.warn("Keitaro postback failed", e));
   }, [subid]);
 
+  // ГЛАВНЫЙ ФИКС: загружаем язык и проверяем Telegram с задержкой
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-
-    const inTelegram = tg && typeof tg.initDataUnsafe === "object" && Object.keys(tg.initDataUnsafe).length > 0;
-    setIsTelegramApp(inTelegram);
-  }, []);
-  
-  useEffect(() => {
+    // Загружаем язык
     const lang = detectLanguage();
     const localization = loadContent(lang);
-    console.log("🌍 Detected language:", lang);
     setContent(localization);
+
+    // Даём время на загрузку Telegram WebApp (300 миллисекунд)
+    const timer = setTimeout(() => {
+      try {
+        const tg = window.Telegram?.WebApp;
+        const inTelegram = tg && typeof tg.initDataUnsafe === "object" && Object.keys(tg.initDataUnsafe).length > 0;
+        setIsTelegramApp(inTelegram);
+        setLoading(false);
+      } catch (error) {
+        console.warn("Ошибка при проверке Telegram:", error);
+        setIsTelegramApp(false);
+        setLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  if (!content) return <div>Loading...</div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Загрузка...</div>;
+  if (!content) return <div>Ошибка загрузки контента</div>;
 
   if (!isTelegramApp) {
     return <WebVersion content={content.desktop} />;
