@@ -1,4 +1,5 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const { botToken } = require('./config');
 
 // Базовый URL для Telegram Bot API
@@ -128,17 +129,63 @@ async function sendPhoto(chatId, photoUrl, caption = '') {
 }
 
 /**
- * Проверка валидности webhook-данных от Telegram
- * @param {string} initData - Данные инициализации от Telegram WebApp
- * @returns {boolean} - Результат проверки
+ * Проверка подлинности initData, полученного от Telegram WebApp,
+ * согласно https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
+ * @param {string} initData - Строка initData из Telegram.WebApp.initData
+ * @returns {boolean} - Результат проверки подписи
  */
 function validateWebAppData(initData) {
-  // В реальном приложении здесь должна быть реализация проверки
-  // согласно документации Telegram: https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
-  
-  // Заглушка для тестирования
-  console.log('Проверка данных веб-приложения:', initData);
-  return true;
+  try {
+    if (!initData || !botToken || botToken === 'your_telegram_bot_token') {
+      return false;
+    }
+
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) return false;
+
+    params.delete('hash');
+
+    const dataCheckArr = [];
+    for (const [key, value] of [...params.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      dataCheckArr.push(`${key}=${value}`);
+    }
+    const dataCheckString = dataCheckArr.join('\n');
+
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+    const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    return computedHash === hash;
+  } catch (error) {
+    console.error('Ошибка при проверке initData:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Достаёт данные пользователя Telegram (id, имя) из initData.
+ * Не полагается на validateWebAppData — вызывайте отдельно, если нужна проверка подписи.
+ * @param {string} initData
+ * @returns {{id: string, firstName: string, lastName: string}|null}
+ */
+function parseInitDataUser(initData) {
+  try {
+    const params = new URLSearchParams(initData);
+    const userRaw = params.get('user');
+    if (!userRaw) return null;
+
+    const user = JSON.parse(userRaw);
+    if (!user.id) return null;
+
+    return {
+      id: String(user.id),
+      firstName: user.first_name || '',
+      lastName: user.last_name || ''
+    };
+  } catch (error) {
+    console.error('Ошибка при разборе initData:', error.message);
+    return null;
+  }
 }
 
 module.exports = {
@@ -147,5 +194,6 @@ module.exports = {
   sendOrderNotification,
   sendReminderNotification,
   sendPhoto,
-  validateWebAppData
+  validateWebAppData,
+  parseInitDataUser
 }; 

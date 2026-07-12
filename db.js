@@ -13,6 +13,12 @@ const pool = new Pool({
   password: db.password
 });
 
+// Правила начисления бонусов (геймификация)
+const BONUS_PER_VISIT = 100;
+const BONUS_PER_REVIEW = 50;
+const MILESTONE_VISITS = 10;
+const MILESTONE_BONUS = 500;
+
 // Временное хранилище данных в памяти (для тестирования, если БД не доступна)
 const memoryDb = {
   customers: {},
@@ -81,6 +87,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         customer_id INTEGER REFERENCES customers(id),
         service VARCHAR(100) NOT NULL,
+        master VARCHAR(100) DEFAULT 'any',
         date DATE NOT NULL,
         time TIME NOT NULL,
         comments TEXT,
@@ -127,6 +134,12 @@ async function initDB() {
         question TEXT NOT NULL,
         answer TEXT NOT NULL
       );
+    `);
+
+    // Миграция: добавляем колонку master, если таблица appointments была создана
+    // раньше (CREATE TABLE IF NOT EXISTS не меняет уже существующие таблицы)
+    await pool.query(`
+      ALTER TABLE appointments ADD COLUMN IF NOT EXISTS master VARCHAR(100) DEFAULT 'any';
     `);
     
     // Проверяем, есть ли данные в таблице products, если нет - добавляем начальные данные
@@ -287,6 +300,31 @@ const customers = {
   }
 };
 
+// Находит telegram_id клиента по внутреннему customer_id записи (appointment)
+async function getTelegramIdByCustomerId(customerId) {
+  try {
+    const result = await pool.query('SELECT telegram_id FROM customers WHERE id = $1', [customerId]);
+    return result.rows[0]?.telegram_id || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Начисляет бонусы за визит и проверяет достижение целевого количества визитов
+async function awardVisitBonus(telegramId) {
+  if (!telegramId) return;
+  try {
+    const updated = await customers.incrementVisits(telegramId);
+    await customers.updateBalance(telegramId, BONUS_PER_VISIT);
+
+    if (updated && updated.visits > 0 && updated.visits % MILESTONE_VISITS === 0) {
+      await customers.updateBalance(telegramId, MILESTONE_BONUS);
+    }
+  } catch (error) {
+    console.error('Ошибка при начислении бонуса за визит:', error.message);
+  }
+}
+
 // Методы для работы с записями
 const appointments = {
   /**
@@ -308,10 +346,10 @@ const appointments = {
       const customerId = customerResult.rows[0].id;
       
       const result = await pool.query(`
-        INSERT INTO appointments (customer_id, service, date, time, comments, status)
-        VALUES ($1, $2, $3, $4, $5, 'upcoming')
+        INSERT INTO appointments (customer_id, service, master, date, time, comments, status)
+        VALUES ($1, $2, $3, $4, $5, $6, 'upcoming')
         RETURNING *
-      `, [customerId, data.service, data.date, data.time, data.comments || '']);
+      `, [customerId, data.service, data.master || 'any', data.date, data.time, data.comments || '']);
       
       return result.rows[0];
     } catch (error) {
@@ -348,9 +386,10 @@ const appointments = {
   async getByUserId(userId) {
     try {
       const result = await pool.query(`
-        SELECT a.* 
+        SELECT a.*, f.rating, f.comments as feedback_comments
         FROM appointments a
         JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN feedback f ON a.id = f.appointment_id
         WHERE c.telegram_id = $1
         ORDER BY a.date DESC, a.time DESC
       `, [userId]);
@@ -394,8 +433,15 @@ const appointments = {
         WHERE id = $2
         RETURNING *
       `, [status, id]);
-      
-      return result.rows[0] || null;
+
+      const appointment = result.rows[0] || null;
+
+      if (appointment && status === 'completed') {
+        const telegramId = await getTelegramIdByCustomerId(appointment.customer_id);
+        await awardVisitBonus(telegramId);
+      }
+
+      return appointment;
     } catch (error) {
       console.error('Ошибка при обновлении статуса:', error);
       
@@ -406,6 +452,10 @@ const appointments = {
       }
       
       memoryDb.appointments[index].status = status;
+
+      if (status === 'completed') {
+        await awardVisitBonus(memoryDb.appointments[index].userId);
+      }
       
       return memoryDb.appointments[index];
     }
@@ -431,8 +481,17 @@ const appointments = {
         LEFT JOIN feedback f ON a.id = f.appointment_id
         WHERE a.id = $1
       `, [id]);
+
+      const appointment = result.rows[0] || null;
+
+      if (appointment) {
+        const telegramId = await getTelegramIdByCustomerId(appointment.customer_id);
+        if (telegramId) {
+          await customers.updateBalance(telegramId, BONUS_PER_REVIEW);
+        }
+      }
       
-      return result.rows[0] || null;
+      return appointment;
     } catch (error) {
       console.error('Ошибка при добавлении отзыва:', error);
       
@@ -446,6 +505,11 @@ const appointments = {
         ...feedback,
         date: new Date().toISOString()
       };
+      memoryDb.appointments[index].rating = feedback.rating;
+
+      if (memoryDb.appointments[index].userId) {
+        await customers.updateBalance(memoryDb.appointments[index].userId, BONUS_PER_REVIEW);
+      }
       
       return memoryDb.appointments[index];
     }

@@ -88,6 +88,7 @@ async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         customer_id INTEGER REFERENCES customers(id),
         service VARCHAR(100) NOT NULL,
+        master VARCHAR(100) DEFAULT 'any',
         date DATE NOT NULL,
         time TIME NOT NULL,
         comments TEXT,
