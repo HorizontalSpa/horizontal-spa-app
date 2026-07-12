@@ -38,3 +38,256 @@ body {
 .highlight {
   color: #1ABC9C;
 }
+
+/* ==== Общие блоки ==== */
+.app-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px 90px;
+}
+
+.page-title {
+  text-align: center;
+  color: #2C3E50;
+}
+
+.section-title {
+  margin-top: 24px;
+  color: #2C3E50;
+}
+
+.btn-primary {
+  background: #1ABC9C;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-secondary {
+  background: white;
+  color: #1ABC9C;
+  border: 1px solid #1ABC9C;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.error-banner {
+  background: #FDECEA;
+  color: #B3261E;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+/* ==== Welcome ==== */
+.welcome-card {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ==== Меню ==== */
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.menu-item {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  font-weight: 500;
+}
+
+/* ==== Баннеры ==== */
+.banners {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  margin: 16px 0;
+  padding-bottom: 4px;
+}
+
+.banner {
+  min-width: 240px;
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.banner-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+/* ==== Формы ==== */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #2C3E50;
+}
+
+.form input,
+.form select,
+.form textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+/* ==== Профиль ==== */
+.profile-summary {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.profile-stat {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.profile-stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1ABC9C;
+}
+
+.appointment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.appointment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.appointment-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #eee;
+  margin-top: 6px;
+}
+
+.feedback-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.star-btn {
+  border: 1px solid #eee;
+  background: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* ==== Бонусы / прогресс ==== */
+.rules-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-top: 12px;
+}
+
+.progress-bar {
+  background: #eee;
+  border-radius: 20px;
+  height: 12px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-bar-fill {
+  background: #1ABC9C;
+  height: 100%;
+}
+
+/* ==== Нижняя навигация ==== */
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 4px;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  color: #7F8C8D;
+  cursor: pointer;
+  gap: 2px;
+}
+
+.nav-item.active {
+  color: #1ABC9C;
+}
+
+.nav-icon {
+  font-size: 18px;
+}
+
+/* ==== Веб-версия (вне Telegram) ==== */
+.web-version {
+  max-width: 480px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 20px;
+}

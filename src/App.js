@@ -1,55 +1,36 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import WelcomeCard from "./components/WelcomeCard";
-import Home from "./components/Home";
-import Benefit from "./components/Benefit";
-import Ranking from "./components/Ranking";
-import Profile from "./components/Profile";
-import WebVersion from "./components/WebVersion";
-import { detectLanguage, loadContent } from "./utils/appLocalization.js";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import WelcomeCard from './components/WelcomeCard';
+import Home from './components/Home';
+import Booking from './components/Booking';
+import Benefit from './components/Benefit';
+import Ranking from './components/Ranking';
+import Profile from './components/Profile';
+import WebVersion from './components/WebVersion';
+import useTelegramUser from './hooks/useTelegramUser';
 import './App.css';
 
 function App() {
-  const [isTelegramApp, setIsTelegramApp] = useState(false);
-  const [content, setContent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { isTelegramApp, userId, loading, error } = useTelegramUser();
 
-  useEffect(() => {
-    const lang = detectLanguage();
-    const localization = loadContent(lang);
-    setContent(localization);
-
-    const timer = setTimeout(() => {
-      try {
-        const tg = window.Telegram?.WebApp;
-        const inTelegram = tg && typeof tg.initDataUnsafe === "object" && Object.keys(tg.initDataUnsafe).length > 0;
-        setIsTelegramApp(inTelegram);
-        setLoading(false);
-      } catch (error) {
-        console.warn("Ошибка при проверке Telegram:", error);
-        setIsTelegramApp(false);
-        setLoading(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Загрузка...</div>;
-  if (!content) return <div>Ошибка загрузки контента</div>;
+  if (loading) {
+    return (
+      <div className="app-loader">Загрузка...</div>
+    );
+  }
 
   if (!isTelegramApp) {
-    return <WebVersion content={content.desktop} />;
+    return <WebVersion />;
   }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<WelcomeCard content={content.welcomeCard} />} />
-        <Route path="/home" element={<Home content={content.home} />} />
-        <Route path="/benefit" element={<Benefit content={content.benefit} />} />
-        <Route path="/ranking" element={<Ranking content={content.ranking} />} />
-        <Route path="/profile" element={<Profile content={content.profile} />} />
+        <Route path="/" element={<WelcomeCard />} />
+        <Route path="/home" element={<Home userId={userId} authError={error} />} />
+        <Route path="/booking" element={<Booking userId={userId} />} />
+        <Route path="/benefit" element={<Benefit userId={userId} />} />
+        <Route path="/ranking" element={<Ranking userId={userId} />} />
+        <Route path="/profile" element={<Profile userId={userId} />} />
       </Routes>
     </BrowserRouter>
   );
