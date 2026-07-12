@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { validateWebAppData } = require('../bot');
+const { validateWebAppData, parseInitDataUser } = require('../bot');
 const db = require('../db');
 
 // Модель данных (заглушка)
@@ -18,6 +18,19 @@ const faqs = [
   { id: 3, question: 'Есть ли противопоказания?', answer: 'Да, у большинства процедур есть противопоказания. Проконсультируйтесь со специалистом перед записью.' },
   { id: 4, question: 'Что делать перед процедурой?', answer: 'Перед процедурой рекомендуется избегать загара, алкоголя и воздействия на кожу агрессивных средств.' },
   { id: 5, question: 'Что делать после процедуры?', answer: 'После процедуры следуйте индивидуальным рекомендациям специалиста, обычно это увлажнение кожи и защита от солнца.' }
+];
+
+// Мастера (для выбора в форме записи). Позже можно перенести в БД.
+const masters = [
+  { id: 'anna', name: 'Анна', specialization: 'Массаж, уход за лицом' },
+  { id: 'irina', name: 'Ирина', specialization: 'Лазерная эпиляция' },
+  { id: 'olga', name: 'Ольга', specialization: 'Маникюр' }
+];
+
+// Баннеры со скидками/акциями на главном экране. Позже можно перенести в БД/админку.
+const banners = [
+  { id: 1, title: 'Скидка 20% на первый визит', text: 'Промокод: HELLO20', color: '#1ABC9C' },
+  { id: 2, title: 'Приведи друга — получи 500 бонусов', text: 'Действует на все услуги', color: '#3498DB' }
 ];
 
 // Подготовка и рекомендации
@@ -42,33 +55,52 @@ const intervals = {
   'manicure': '2-3 недели в зависимости от скорости роста ногтей и типа покрытия'
 };
 
+// Список мастеров
+router.get('/masters', (req, res) => {
+  res.json({ success: true, masters });
+});
+
+// Баннеры для главного экрана
+router.get('/banners', (req, res) => {
+  res.json({ success: true, banners });
+});
+
 // Аутентификация пользователя Телеграм
 router.post('/auth', async (req, res) => {
   try {
     const { initData } = req.body;
-    
+
     if (!initData) {
       return res.status(400).json({ success: false, message: 'Отсутствуют данные инициализации' });
     }
-    
-    // В реальном приложении здесь должна быть проверка данных
-    const isValid = validateWebAppData(initData);
-    
-    if (!isValid) {
-      return res.status(401).json({ success: false, message: 'Недействительные данные инициализации' });
+
+    let telegramUser;
+
+    if (initData === 'dev-mode' && process.env.NODE_ENV !== 'production') {
+      // Позволяет тестировать локально (npm run dev) без реального Telegram initData
+      telegramUser = { id: 'dev-user', firstName: 'Тест', lastName: '' };
+    } else {
+      const isValid = validateWebAppData(initData);
+      if (!isValid) {
+        return res.status(401).json({ success: false, message: 'Недействительные данные инициализации' });
+      }
+
+      telegramUser = parseInitDataUser(initData);
+      if (!telegramUser) {
+        return res.status(400).json({ success: false, message: 'Не удалось определить пользователя Telegram' });
+      }
     }
-    
-    // Получаем ID пользователя из данных инициализации
-    // Для тестирования используем заглушку
-    const userIdTest = Math.floor(Math.random() * 1000000);
-    
-    // Создаем или получаем пользователя
-    const customer = await db.customers.upsert(userIdTest.toString());
-    
+
+    // Создаём или находим клиента по его настоящему Telegram ID
+    const customer = await db.customers.upsert(telegramUser.id, {
+      first_name: telegramUser.firstName,
+      last_name: telegramUser.lastName
+    });
+
     res.json({
       success: true,
       message: 'Успешная аутентификация',
-      userId: customer.id
+      userId: customer.telegram_id || customer.id
     });
   } catch (error) {
     console.error('Ошибка аутентификации:', error);
@@ -203,7 +235,7 @@ router.get('/intervals/:serviceType', (req, res) => {
 // Запись на процедуру
 router.post('/appointments', async (req, res) => {
   try {
-    const { userId, service, date, time, comments } = req.body;
+    const { userId, service, master, date, time, comments } = req.body;
     
     if (!userId || !service || !date || !time) {
       return res.status(400).json({ success: false, message: 'Не все обязательные поля заполнены' });
@@ -213,6 +245,7 @@ router.post('/appointments', async (req, res) => {
     const newAppointment = await db.appointments.create({
       userId,
       service,
+      master: master || 'any',
       date,
       time,
       comments: comments || ''
@@ -250,6 +283,26 @@ router.get('/appointments/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка при получении записей:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Отметить визит как завершённый (начисляет бонус за визит).
+// ВНИМАНИЕ: пока без проверки прав — вызывать должен только персонал/бот-админка.
+// Открытый публичный доступ к этому эндпоинту нужно закрыть до продакшена
+// (например, отдельным admin-токеном), см. README.
+router.post('/appointments/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await db.appointments.updateStatus(parseInt(id), 'completed');
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Запись не найдена' });
+    }
+
+    res.json({ success: true, appointment: updated });
+  } catch (error) {
+    console.error('Ошибка при завершении визита:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
